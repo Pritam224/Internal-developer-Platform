@@ -4,7 +4,7 @@
 
 A Kubernetes-based Internal Developer Platform that provides self-service infrastructure and deployment capabilities for developers through a GitOps-driven workflow.
 
-The platform combines **Backstage** (developer portal), **Crossplane** (infrastructure provisioning), **ArgoCD** (GitOps delivery), and **Kyverno** (policy enforcement) to eliminate operational bottlenecks while maintaining governance, security, and consistency.
+The platform combines **Backstage** (developer portal), **Crossplane** (infrastructure provisioning), **ArgoCD** (GitOps delivery), **Kyverno** (policy enforcement), and an **AI-powered debugging layer** (MCP + RAG) to eliminate operational bottlenecks while maintaining governance, security, and consistency.
 
 Built on Azure (AKS), following cloud-native and platform engineering principles.
 
@@ -44,6 +44,11 @@ ArgoCD (GitOps — syncs desired state to cluster)
    ├── Helm Releases (application deployments)
    ├── Namespace + RBAC + Quotas (K8s manifests)
    └── Kyverno (policy enforcement — guardrails)
+
+AI Debugging Layer:
+   MCP Server (live cluster tools — kubectl, ArgoCD, Prometheus)
+   RAG Engine (indexed runbooks, docs, past incidents)
+   AI CLI (Claude API — autonomous diagnosis)
 
 Base Infrastructure (bootstrapped with Terraform):
    AKS, VNet, ACR, Key Vault, DNS Zone
@@ -104,6 +109,11 @@ Base Infrastructure (bootstrapped with Terraform):
 │   └───────────┘ └──────────┘                                   │
 │                                                                  │
 │   ┌──────────────────────────────────────────────┐              │
+│   │           AI Debugging Layer                  │              │
+│   │  MCP Server │ RAG Engine │ Claude API │ CLI  │              │
+│   └──────────────────────────────────────────────┘              │
+│                                                                  │
+│   ┌──────────────────────────────────────────────┐              │
 │   │           Observability Layer                 │              │
 │   │  Prometheus  │  Grafana  │  Loki  │  Alerts  │              │
 │   └──────────────────────────────────────────────┘              │
@@ -134,6 +144,8 @@ Base Infrastructure (bootstrapped with Terraform):
 | **Authentication** | Entra ID (Azure AD) | SSO, RBAC integration, workload identity |
 | **Database** | PostgreSQL Flexible Server | Managed, VNet-integrated, HA, provisioned via Crossplane |
 | **Container Registry** | Azure Container Registry (ACR) | Private, AKS-integrated, geo-replication capable |
+| **AI Debugging** | MCP Server + Claude API | Live cluster tools exposed via Model Context Protocol |
+| **Knowledge Retrieval** | RAG (ChromaDB + Embeddings) | Indexed runbooks and docs for context-aware diagnosis |
 
 ---
 
@@ -358,6 +370,108 @@ Pod reads /mnt/secrets/db-password (in-memory, never on disk)
 - Crossplane resource health
 - Kyverno policy violations
 
+### 10. AI-Powered Debugging (MCP + RAG)
+
+An AI-assisted debugging layer that autonomously diagnoses Kubernetes issues using live cluster data and indexed platform knowledge.
+
+**Architecture:**
+
+```
+Developer: "my orders service is broken"
+   ↓
+AI Debug CLI (Claude API)
+   ├── MCP Server → pulls live data (pod logs, events, metrics, ArgoCD status)
+   └── RAG Engine → searches indexed runbooks, docs, past incidents
+   ↓
+AI Response: "OOMKilled — orders-service container exceeded 512Mi memory limit.
+Prometheus shows memory climbing since last deploy. Runbook says: increase
+limit to 1Gi or check for the known memory leak in v2.3. Here's the fix..."
+```
+
+**MCP Server — Live Cluster Tools:**
+
+The MCP server exposes Kubernetes and platform operations as tools that the AI can call autonomously:
+
+| Tool | What it does |
+|---|---|
+| `get_pod_logs` | Fetch logs from a specific pod/container |
+| `get_pod_events` | Fetch K8s events for a pod |
+| `describe_resource` | kubectl describe on any resource |
+| `get_deployment_status` | Replica status, rollout history |
+| `get_argocd_sync_status` | ArgoCD app health and sync state |
+| `get_crossplane_claim_status` | Crossplane resource provisioning status |
+| `query_prometheus` | Run PromQL queries for metrics |
+| `get_kyverno_violations` | Policy violations for a namespace |
+| `get_nsg_flow_logs` | Network security group flow decisions |
+
+```python
+# Example MCP tool definition
+@mcp.tool()
+async def get_pod_logs(namespace: str, pod: str, lines: int = 100) -> str:
+    """Fetch recent logs from a Kubernetes pod."""
+    result = subprocess.run(
+        ["kubectl", "logs", pod, "-n", namespace, f"--tail={lines}"],
+        capture_output=True, text=True
+    )
+    return result.stdout
+```
+
+**RAG Engine — Knowledge-Aware Diagnosis:**
+
+Platform documentation, runbooks, and past incident reports are chunked, embedded, and stored in a vector database. The AI searches them for context-relevant guidance.
+
+```
+Indexed sources:
+  → Backstage TechDocs (platform docs, onboarding guides)
+  → Runbooks (troubleshooting playbooks per service)
+  → Past incident reports (what broke, root cause, fix)
+  → Kubernetes docs (error reference)
+  → Crossplane/ArgoCD docs (common issues)
+```
+
+```python
+# RAG indexing pipeline
+from chromadb import Client
+from sentence_transformers import SentenceTransformer
+
+model = SentenceTransformer("all-MiniLM-L6-v2")
+db = Client()
+collection = db.get_or_create_collection("platform-docs")
+
+# Chunk and embed documents
+for doc in load_docs("docs/"):
+    chunks = chunk_text(doc.content, max_tokens=500)
+    embeddings = model.encode(chunks)
+    collection.add(
+        documents=chunks,
+        embeddings=embeddings,
+        ids=[f"{doc.name}_{i}" for i in range(len(chunks))]
+    )
+```
+
+```python
+# RAG search at query time
+def search_runbooks(query: str, top_k: int = 3) -> list[str]:
+    results = collection.query(
+        query_embeddings=model.encode([query]),
+        n_results=top_k
+    )
+    return results["documents"][0]
+```
+
+**CLI Usage:**
+
+```bash
+# Diagnose a failing pod
+idp-debug --namespace orders-dev --pod orders-service-xyz
+
+# Diagnose with specific context
+idp-debug --namespace orders-dev --issue "connection timeout to postgres"
+
+# List available MCP tools
+idp-debug --list-tools
+```
+
 ---
 
 ## Security
@@ -458,6 +572,23 @@ idp-platform/
 │           │   └── app-release.yaml
 │           └── prod/
 │
+├── tools/                            # AI debugging layer
+│   ├── mcp-server/                   # MCP server (cluster tools)
+│   │   ├── server.py                 # MCP protocol handler
+│   │   ├── requirements.txt
+│   │   └── tools/
+│   │       ├── kubectl.py            # Pod logs, events, describe
+│   │       ├── argocd.py             # Sync status, app health
+│   │       ├── prometheus.py         # PromQL queries
+│   │       └── crossplane.py         # Claim status
+│   ├── rag/                          # RAG engine (knowledge retrieval)
+│   │   ├── index.py                  # Embed and index docs
+│   │   ├── search.py                 # Semantic search
+│   │   └── requirements.txt
+│   └── ai-debug/                     # CLI entrypoint
+│       ├── cli.py                    # Ties MCP + RAG + Claude API
+│       └── requirements.txt
+│
 ├── docs/                             # Documentation
 │   ├── getting-started.md
 │   ├── architecture.md
@@ -544,13 +675,25 @@ idp-platform/
 
 **Milestone:** Full dashboard showing all teams, resource usage, costs, policy violations, deployment status
 
+### Phase 6 — AI Debugging Layer (Week 9-10)
+
+**Goal:** AI-powered issue diagnosis using live cluster data + platform knowledge
+
+- [ ] MCP Server: Python server exposing kubectl, ArgoCD, Prometheus as MCP tools
+- [ ] MCP Tools: get_pod_logs, get_pod_events, describe_resource, get_argocd_sync_status, query_prometheus
+- [ ] AI Debug CLI: Claude API integration, calls MCP tools autonomously based on developer's question
+- [ ] RAG: Index platform docs, runbooks, and troubleshooting guides using ChromaDB + sentence-transformers
+- [ ] RAG Search: Semantic search over indexed docs, injected as context into Claude prompts
+- [ ] End-to-end flow: `idp-debug --namespace orders-dev --pod orders-xyz` → MCP pulls data → RAG adds context → Claude diagnoses
+
+**Milestone:** Run `idp-debug` on a CrashLoopBackOff pod → AI pulls logs via MCP, finds OOM error, searches runbook via RAG, recommends increasing memory limit with the exact Helm values change.
+
 ---
 
 ## Future Enhancements
 
 - [ ] **Multi-cluster:** ArgoCD managing dev + staging + prod clusters
 - [ ] **Preview environments:** PR creates ephemeral namespace, destroyed on merge
-- [ ] **AI-assisted troubleshooting:** LLM-powered incident analysis from logs/metrics
 - [ ] **Cost budgets:** Per-team cost limits enforced via Crossplane + Kyverno
 - [ ] **Service mesh:** Istio/Linkerd for mTLS between services
 - [ ] **Automated certificate management:** cert-manager + Let's Encrypt
@@ -568,7 +711,9 @@ idp-platform/
 - `terraform` >= 1.5
 - `kubectl`
 - `helm`
+- `python` >= 3.10
 - GitHub account + personal access token
+- Anthropic API key (for AI debug CLI)
 
 ### Bootstrap
 
@@ -605,6 +750,15 @@ kubectl get clusterpolicies
 
 # Check a Crossplane claim
 kubectl get databases -A
+
+# Setup AI debug tools
+cd tools/rag && pip install -r requirements.txt
+python index.py                    # Index platform docs
+cd ../mcp-server && pip install -r requirements.txt
+cd ../ai-debug && pip install -r requirements.txt
+
+# Test AI debug CLI
+idp-debug --list-tools
 ```
 
 ---
@@ -613,7 +767,7 @@ kubectl get databases -A
 
 This platform demonstrates the shift from **"DevOps as a service desk"** to **"DevOps as a product team"** — building the platform that empowers developers to self-serve while maintaining governance, security, and cost control.
 
-Built with the tools that define Platform Engineering in 2026: **Backstage, Crossplane, ArgoCD, Kyverno**.
+Built with the tools that define Platform Engineering in 2026: **Backstage, Crossplane, ArgoCD, Kyverno, MCP, RAG**.
 
 ---
 
@@ -625,3 +779,6 @@ Built with the tools that define Platform Engineering in 2026: **Backstage, Cros
 - [Kyverno Docs](https://kyverno.io/docs/)
 - [Azure AKS Docs](https://learn.microsoft.com/en-us/azure/aks/)
 - [Platform Engineering Maturity Model](https://tag-app-delivery.cncf.io/whitepapers/platform-eng-maturity-model/)
+- [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)
+- [ChromaDB](https://docs.trychroma.com/)
+- [Anthropic Claude API](https://docs.anthropic.com/)

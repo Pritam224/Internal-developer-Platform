@@ -63,3 +63,8 @@ variable "aks_cluster_name" {
   type        = string
   description = "Name of the AKS cluster"
 }
+
+variable "keyvault_name" {
+  type = string
+  description = "Name of the azure keyvault"
+}

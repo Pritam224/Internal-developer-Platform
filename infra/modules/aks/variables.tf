@@ -19,7 +19,6 @@ variable "environment" {
 }
 
 
-
 variable "owner_email" {
   type        = string
   description = "ThoughtWorks email address of the owner"
@@ -33,6 +32,36 @@ variable "project_name" {
 variable "aks_subnet_id" {
   type        = string
   description = "Resource ID of the AKS subnet"
+}
+
+variable "min_node_count" {
+  type        = number
+  description = "Minimum node count for autoscaling app node pool (prod only)"
+  default     = 1
+}
+
+variable "max_node_count" {
+  type        = number
+  description = "Maximum node count for autoscaling app node pool (prod only)"
+  default     = 3
+}
+
+variable "node_vm_size" {
+  type        = string
+  description = "VM size for AKS nodes"
+  default     = "Standard_DS2_v2"
+}
+
+variable "service_cidr" {
+  type        = string
+  description = "Kubernetes service CIDR (must NOT overlap with VNet address space)"
+  default     = "10.1.0.0/16"
+}
+
+variable "dns_service_ip" {
+  type        = string
+  description = "DNS service IP (must be inside service_cidr)"
+  default     = "10.1.0.10"
 }
 
 

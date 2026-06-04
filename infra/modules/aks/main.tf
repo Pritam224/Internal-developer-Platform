@@ -4,18 +4,19 @@ resource "azurerm_kubernetes_cluster" "aks" {
   location            = var.location
   resource_group_name = var.resource_group_name
   dns_prefix          = var.aks_cluster_name
+  oidc_issuer_enabled = true
 
   default_node_pool {
     name           = "default"
     node_count     = 1
-    vm_size        = "Standard_DS2_v2"
+    vm_size        = var.node_vm_size
     vnet_subnet_id = var.aks_subnet_id
   }
 
   network_profile {
     network_plugin = "azure"
-    service_cidr   = "10.1.0.0/16"
-    dns_service_ip = "10.1.0.10"
+    service_cidr   = var.service_cidr
+    dns_service_ip = var.dns_service_ip
   }
 
   identity {
@@ -26,6 +27,22 @@ resource "azurerm_kubernetes_cluster" "aks" {
     environment = var.environment
     owners      = var.owner_email
     project     = var.project_name
+  }
+}
+
+
+resource "azurerm_kubernetes_cluster_node_pool" "app_node_pool" {
+  count = var.environment == "dev" ? 0:1
+  name                  = "apppool"
+  kubernetes_cluster_id = azurerm_kubernetes_cluster.aks.id
+  vm_size               = var.node_vm_size
+  node_count            = 1
+  auto_scaling_enabled = true
+  max_count = var.max_node_count
+  min_count = var.min_node_count
+
+  tags = {
+    Environment = var.environment
   }
 }
 

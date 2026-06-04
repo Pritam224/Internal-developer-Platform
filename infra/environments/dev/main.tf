@@ -27,9 +27,24 @@ module "aks" {
 }
 
 module "keyvault" {
-  source = "../../modules/keyvault"
+  source     = "../../modules/keyvault"
+  depends_on = [module.network]
 
   keyvault_name       = var.keyvault_name
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  environment         = var.environment
+  owner_email         = var.owner_email
+  project_name        = var.project_name
+}
+
+
+module "acr" {
+  source     = "../../modules/acr"
+  depends_on = [module.network]
+
+  acr_name            = var.acr_name
+  sku                 = var.sku
   resource_group_name = var.resource_group_name
   location            = var.location
   environment         = var.environment

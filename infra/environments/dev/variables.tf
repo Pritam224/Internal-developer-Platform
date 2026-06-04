@@ -68,3 +68,17 @@ variable "keyvault_name" {
   type = string
   description = "Name of the azure keyvault"
 }
+
+variable "acr_name" {
+  type = string
+  description = "Provide container registry name"
+}
+
+variable "identity_type" {
+  type = string
+}
+
+variable "sku" {
+  type = string
+  description = "Provide sku for ACR"
+}

@@ -28,3 +28,15 @@ variable "project_name" {
   description = "Project name for tagging"
 }
 
+variable "purge_protection_enabled" {
+  type        = bool
+  description = "Enable purge protection (IRREVERSIBLE once true — vault cannot be permanently deleted until retention expires)"
+  default     = false
+}
+
+variable "soft_delete_retention_days" {
+  type        = number
+  description = "Days deleted vault/secrets are recoverable (7-90)"
+  default     = 7
+}
+

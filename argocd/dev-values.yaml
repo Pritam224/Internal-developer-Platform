@@ -59,9 +59,9 @@ configs:
   # repo or use credentials.
   repositories:
     app-deployer:
-      url: https://github.com/Pritamsingh224/app-deployer
+      url: https://github.com/Pritam224/Internal-developer-Platform
       type: git
-      name: app-deployer
+      name: Internal-developer-Platform
 
 # Bootstrap Application — created by helm install alongside ArgoCD itself.
 # Watches infra-manifest/ in the repo and syncs everything there to the cluster.
@@ -78,8 +78,8 @@ extraObjects:
     spec:
       project: default
       source:
-        repoURL: https://github.com/Pritamsingh224/app-deployer
-        path: infra-manifest
+        repoURL: https://github.com/Pritam224/Internal-developer-Platform
+        path: infra-manifest/dev
         targetRevision: main
       destination:
         server: https://kubernetes.default.svc

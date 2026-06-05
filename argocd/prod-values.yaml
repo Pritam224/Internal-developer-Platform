@@ -1,85 +1,85 @@
-# Dev-only overrides. Layered on top of argocd/values.yaml.
+# Prod overrides. Layered on top of argocd/values.yaml.
 #
-# Install:
+# Install (after prod AKS is up + kubectl context set to prod):
 #   helm upgrade --install argocd argo/argo-cd \
 #     -n argocd --create-namespace \
-#     -f argocd/values.yaml -f argocd/dev-values.yaml
+#     -f argocd/values.yaml -f argocd/prod-values.yaml
 
-# Dev node is small (Standard_DS2_v2: 2 vCPU / 7 GB).
-# Lower resource requests so all ArgoCD components fit comfortably.
+# Prod node: Standard_D4s_v5 (4 vCPU / 16 GB), 1-2 nodes autoscaled.
+# Bigger resource requests; tighter limits than dev.
 controller:
+  replicas: 2  # sharded controller for HA + cluster distribution
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      memory: 2Gi
+
+server:
+  replicas: 2
   resources:
     requests:
       cpu: 100m
       memory: 256Mi
     limits:
       memory: 512Mi
-
-server:
-  resources:
-    requests:
-      cpu: 50m
-      memory: 128Mi
-    limits:
-      memory: 256Mi
+  autoscaling:
+    enabled: false  # turn on once ingress traffic is real
 
 repoServer:
+  replicas: 2
   resources:
     requests:
-      cpu: 50m
-      memory: 128Mi
+      cpu: 200m
+      memory: 512Mi
     limits:
-      memory: 256Mi
+      memory: 1Gi
 
 applicationSet:
+  replicas: 2
   resources:
     requests:
-      cpu: 50m
+      cpu: 100m
       memory: 128Mi
     limits:
       memory: 256Mi
 
-# HA is overkill for dev — keep single replicas (chart defaults already do this,
-# explicit here for clarity).
+# HA Redis (3-node Sentinel cluster) — required for prod.
 redis-ha:
-  enabled: false
+  enabled: true
 
-# No SSO in dev — built-in admin login is enough. Chart defaults dex to enabled;
-# this disables the pod so it doesn't consume resources.
+# SSO is wired up later (Keycloak). Until then, built-in admin works.
 dex:
   enabled: false
 
 configs:
   params:
-    # TLS is terminated by the layer in front of argocd-server (port-forward in dev,
-    # ingress in prod). Without this, argocd-server presents a self-signed cert.
+    # In prod, ingress + cert-manager terminate TLS. argocd-server runs HTTP behind it.
     server.insecure: true
 
-  # Repos ArgoCD is allowed to access. Per-env so prod can register a different
-  # repo or use credentials.
+  # Repos ArgoCD is allowed to access.
   repositories:
     app-deployer:
       url: https://github.com/Pritam224/Internal-developer-Platform
       type: git
       name: app-deployer
 
-# Bootstrap Application — created by helm install alongside ArgoCD itself.
-# Watches infra-manifest/ in the repo and syncs everything there to the cluster.
+# Bootstrap Application — points at the PROD overlay of the gitops folder.
 extraObjects:
   - apiVersion: argoproj.io/v1alpha1
     kind: Application
     metadata:
       name: root
-      namespace: argocd
+      namespace: argo-cd
       annotations:
-        # Delay creation until ArgoCD (and its CRDs) are fully installed
         helm.sh/hook: post-install,post-upgrade
         helm.sh/hook-weight: "5"
     spec:
       project: default
       source:
         repoURL: https://github.com/Pritam224/Internal-developer-Platform
-        path: infra-manifest
+        path: infra-manifest/prod
         targetRevision: main
       destination:
         server: https://kubernetes.default.svc

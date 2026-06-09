@@ -1,0 +1,29 @@
+# Child Application — managed by the root Application which watches infra-manifest/dev.
+# Tells ArgoCD to install the backend Helm chart from infra-manifest/helm/backend.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: backend
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Pritam224/Internal-developer-Platform
+    path: infra-manifest/helm/backend
+    targetRevision: main
+    helm:
+      releaseName: backend
+      # Chart's defaults are used. To add env-specific overrides,
+      # add a values-dev.yaml in the chart folder and list it here:
+      # valueFiles:
+      #   - values.yaml
+      #   - values-dev.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: backend
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

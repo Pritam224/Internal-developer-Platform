@@ -1,0 +1,26 @@
+# Root Application — the bootstrap pointer for the DEV cluster.
+# Apply ONCE after ArgoCD itself is installed:
+#   kubectl apply -f argocd/root-app-dev.yaml
+#
+# This file tells ArgoCD to start watching infra-manifest/dev/. Everything
+# else in the cluster (workloads, child Applications) is synced from there.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Pritam224/Internal-developer-Platform
+    path: infra-manifest/dev
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

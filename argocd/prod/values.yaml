@@ -1,9 +1,11 @@
-# Prod overrides. Layered on top of argocd/values.yaml.
+# Prod overrides for the ArgoCD Helm chart.
+# Concerns ONLY how ArgoCD itself runs. Workload pointers live in argocd/prod/root-app.yaml.
 #
-# Install (after prod AKS is up + kubectl context set to prod):
+# Bootstrap (one-time per cluster, after prod AKS is up + kubectl context set to prod):
 #   helm upgrade --install argocd argo/argo-cd \
 #     -n argocd --create-namespace \
-#     -f argocd/values.yaml -f argocd/prod-values.yaml
+#     -f argocd/values.yaml -f argocd/prod/values.yaml
+#   kubectl apply -f argocd/prod/root-app.yaml
 
 # Prod node: Standard_D4s_v5 (4 vCPU / 16 GB), 1-2 nodes autoscaled.
 # Bigger resource requests; tighter limits than dev.
@@ -65,28 +67,3 @@ configs:
       type: git
       name: app-deployer
 
-# Bootstrap Application — points at the PROD overlay of the gitops folder.
-extraObjects:
-  - apiVersion: argoproj.io/v1alpha1
-    kind: Application
-    metadata:
-      name: root
-      namespace: argo-cd
-      annotations:
-        helm.sh/hook: post-install,post-upgrade
-        helm.sh/hook-weight: "5"
-    spec:
-      project: default
-      source:
-        repoURL: https://github.com/Pritam224/Internal-developer-Platform
-        path: infra-manifest/prod
-        targetRevision: main
-      destination:
-        server: https://kubernetes.default.svc
-        namespace: default
-      syncPolicy:
-        automated:
-          prune: true
-          selfHeal: true
-        syncOptions:
-          - CreateNamespace=true

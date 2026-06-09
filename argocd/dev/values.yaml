@@ -1,9 +1,11 @@
-# Dev-only overrides. Layered on top of argocd/values.yaml.
+# Dev-only overrides for the ArgoCD Helm chart.
+# Concerns ONLY how ArgoCD itself runs. Workload pointers live in argocd/dev/root-app.yaml.
 #
-# Install:
+# Bootstrap (one-time per cluster):
 #   helm upgrade --install argocd argo/argo-cd \
 #     -n argocd --create-namespace \
-#     -f argocd/values.yaml -f argocd/dev-values.yaml
+#     -f argocd/values.yaml -f argocd/dev/values.yaml
+#   kubectl apply -f argocd/dev/root-app.yaml
 
 # Dev node is small (Standard_DS2_v2: 2 vCPU / 7 GB).
 # Lower resource requests so all ArgoCD components fit comfortably.
@@ -63,30 +65,3 @@ configs:
       type: git
       name: Internal-developer-Platform
 
-# Bootstrap Application — created by helm install alongside ArgoCD itself.
-# Watches infra-manifest/ in the repo and syncs everything there to the cluster.
-extraObjects:
-  - apiVersion: argoproj.io/v1alpha1
-    kind: Application
-    metadata:
-      name: root
-      namespace: argocd
-      annotations:
-        # Delay creation until ArgoCD (and its CRDs) are fully installed
-        helm.sh/hook: post-install,post-upgrade
-        helm.sh/hook-weight: "5"
-    spec:
-      project: default
-      source:
-        repoURL: https://github.com/Pritam224/Internal-developer-Platform
-        path: infra-manifest/dev
-        targetRevision: main
-      destination:
-        server: https://kubernetes.default.svc
-        namespace: default
-      syncPolicy:
-        automated:
-          prune: true
-          selfHeal: true
-        syncOptions:
-          - CreateNamespace=true

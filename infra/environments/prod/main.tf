@@ -16,7 +16,7 @@ module "network" {
 
 module "aks" {
   source     = "../../modules/aks"
-  depends_on = [module.network]
+  depends_on = [module.network, module.acr]
 
   resource_group_name = var.resource_group_name
   location            = var.location
@@ -30,6 +30,7 @@ module "aks" {
   node_vm_size        = var.node_vm_size
   service_cidr        = var.service_cidr
   dns_service_ip      = var.dns_service_ip
+  acr_name            = var.acr_name
 }
 
 module "keyvault" {

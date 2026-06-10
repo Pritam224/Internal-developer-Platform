@@ -64,4 +64,9 @@ variable "dns_service_ip" {
   default     = "10.1.0.10"
 }
 
+variable "acr_name" {
+  type        = string
+  description = "Name of the ACR to grant AcrPull on (kubelet identity gets AcrPull)"
+}
+
 

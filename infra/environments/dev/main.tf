@@ -15,7 +15,8 @@ module "network" {
 }
 
 module "aks" {
-  source = "../../modules/aks"
+  source     = "../../modules/aks"
+  depends_on = [module.acr]
 
   resource_group_name = var.resource_group_name
   location            = var.location
@@ -24,6 +25,7 @@ module "aks" {
   aks_subnet_id       = module.network.aks_subnet_id
   owner_email         = var.owner_email
   project_name        = var.project_name
+  acr_name            = var.acr_name
 }
 
 module "keyvault" {

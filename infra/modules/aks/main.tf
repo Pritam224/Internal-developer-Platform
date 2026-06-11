@@ -32,14 +32,15 @@ resource "azurerm_kubernetes_cluster" "aks" {
 
 
 resource "azurerm_kubernetes_cluster_node_pool" "app_node_pool" {
-  count = var.environment == "dev" ? 0:1
+  count                 = var.environment == "dev" ? 0 : 1
   name                  = "apppool"
   kubernetes_cluster_id = azurerm_kubernetes_cluster.aks.id
+  vnet_subnet_id        = var.aks_subnet_id
   vm_size               = var.node_vm_size
   node_count            = 1
-  auto_scaling_enabled = true
-  max_count = var.max_node_count
-  min_count = var.min_node_count
+  auto_scaling_enabled  = true
+  max_count             = var.max_node_count
+  min_count             = var.min_node_count
 
   tags = {
     Environment = var.environment

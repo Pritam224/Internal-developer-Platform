@@ -1,6 +1,6 @@
-# We strongly recommend using the required_providers block to set the
-# Azure Provider source and version being used
 terraform {
+  required_version = ">= 1.6.0"
+
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
@@ -9,10 +9,10 @@ terraform {
   }
 }
 
-# Configure the Microsoft Azure Provider
+# Auth: OIDC in CI (via the env vars ARM_CLIENT_ID / ARM_TENANT_ID /
+# ARM_SUBSCRIPTION_ID + ARM_USE_OIDC=true). Azure CLI when run locally.
 provider "azurerm" {
-  subscription_id = "e1811a95-7c51-4955-a86e-de0ce0c2cf73"
-  resource_provider_registrations = "none" # This is only required when the User, Service Principal, or Identity running Terraform lacks the permissions to register Azure Resource Providers.
+  use_oidc                        = true
+  resource_provider_registrations = "none"
   features {}
 }
-

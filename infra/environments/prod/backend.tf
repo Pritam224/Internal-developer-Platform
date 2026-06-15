@@ -1,1 +1,9 @@
-# Remote state not yet configured. Add azurerm backend here when ready.
+# Remote state in Azure Storage. Values are injected by the pipeline via
+# `terraform init -backend-config=...` so the same code works locally and in CI.
+terraform {
+  backend "azurerm" {
+    key                  = "prod.tfstate"
+    use_oidc             = true
+    use_azuread_auth     = true
+  }
+}

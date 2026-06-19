@@ -2,8 +2,8 @@
 # `terraform init -backend-config=...` so the same code works locally and in CI.
 terraform {
   backend "azurerm" {
-    key                  = "dev.tfstate"
-    use_oidc             = true
-    use_azuread_auth     = true
+    key              = "dev.tfstate"
+    use_oidc         = true
+    use_azuread_auth = true
   }
 }

@@ -24,12 +24,12 @@ variable "project_name" {
 }
 
 variable "acr_name" {
-  type = string
+  type        = string
   description = "Provide container registry name"
 }
 
 variable "sku" {
-  type = string
+  type        = string
   description = "Provide sku for ACR"
 }
 

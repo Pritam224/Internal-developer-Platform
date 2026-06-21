@@ -8,4 +8,4 @@ replicaCount: 1
 
 image:
   repository: acridpdev.azurecr.io/hello-world
-  tag: "1463e74"
+  tag: "eb0c770"

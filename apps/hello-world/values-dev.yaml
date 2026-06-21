@@ -4,4 +4,4 @@ replicaCount: 1
 
 image:
   repository: acridpdev.azurecr.io/hello-world
-  tag: ""   # bumped by CI to the commit SHA
+  tag: "1463e74"

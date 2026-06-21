@@ -1,5 +1,9 @@
 # hello-universe (DEV) — overrides on the shared `app` chart's defaults.
 # Differs from hello-world only in image + replica count.
+
+# Target namespace — read by the dev ApplicationSet's git generator (Helm ignores it).
+namespace: backend
+
 replicaCount: 2
 
 image:

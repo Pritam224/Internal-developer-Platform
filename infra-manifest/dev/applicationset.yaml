@@ -34,7 +34,7 @@ spec:
               - $values/{{.path.path}}/values-dev.yaml
       destination:
         server: https://kubernetes.default.svc
-        namespace: "{{.path.basename}}"
+        namespace: "{{.namespace}}"              # read from each service's values-dev.yaml
       syncPolicy:
         automated:
           prune: true

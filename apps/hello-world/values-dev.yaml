@@ -1,5 +1,9 @@
 # hello-world (DEV) — overrides on the shared `app` chart's defaults.
 # No base values.yaml; inherits chart defaults (port 8000, /healthz + /ready probes).
+
+# Target namespace — read by the dev ApplicationSet's git generator (Helm ignores it).
+namespace: backend
+
 replicaCount: 1
 
 image:

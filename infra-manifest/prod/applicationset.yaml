@@ -34,7 +34,7 @@ spec:
               - $values/{{.path.path}}/values-prod.yaml
       destination:
         server: https://kubernetes.default.svc     # TODO: point at the prod cluster API
-        namespace: "{{.path.basename}}"
+        namespace: "{{.namespace}}"                 # read from each service's values-prod.yaml
       syncPolicy:
         # No `automated` block → prod syncs only when a human approves (promotion gate).
         syncOptions:

@@ -1,0 +1,111 @@
+name: Build & deploy services
+
+# Builds any changed service under apps/<svc>/, pushes the image to ACR, then bumps
+# that service's values-dev.yaml tag so ArgoCD redeploys it. One pipeline, all services.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/**"
+      - ".github/workflows/services-build.yml"
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Build a single service (blank = all services)"
+        required: false
+        default: ""
+
+permissions:
+  id-token: write      # OIDC token to Azure
+  contents: write      # commit the values-dev.yaml tag bump back
+
+env:
+  ACR_NAME: acridpdev
+
+jobs:
+  # 1. Work out which services to build → a JSON array consumed by the matrix below.
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.set.outputs.services }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0      # need history to diff against the previous commit
+      - id: set
+        run: |
+          EVENT="${{ github.event_name }}"
+          INPUT="${{ github.event.inputs.service }}"
+          if [ "$EVENT" = "workflow_dispatch" ] && [ -n "$INPUT" ]; then
+            CHANGED="$INPUT"                                   # explicit single service
+          elif [ "$EVENT" = "workflow_dispatch" ]; then
+            CHANGED=$(ls -d apps/*/ | xargs -n1 basename)      # manual run, no input = all
+          else
+            BEFORE="${{ github.event.before }}"
+            if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+              BEFORE="HEAD~1"
+            fi
+            CHANGED=$(git diff --name-only "$BEFORE" "${{ github.sha }}" | grep '^apps/' | cut -d/ -f2 | sort -u)
+          fi
+          # keep only dirs that are actually buildable (have a Dockerfile)
+          LIST=()
+          for s in $CHANGED; do
+            [ -f "apps/$s/Dockerfile" ] && LIST+=("\"$s\"")
+          done
+          SERVICES="[$(IFS=,; echo "${LIST[*]}")]"
+          echo "services=$SERVICES" >> "$GITHUB_OUTPUT"
+          echo "Building: $SERVICES"
+
+  # 2. One build job per detected service. Serialized so the tag-bump pushes don't race.
+  build:
+    needs: detect
+    if: ${{ needs.detect.outputs.services != '[]' && needs.detect.outputs.services != '' }}
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1
+      matrix:
+        service: ${{ fromJSON(needs.detect.outputs.services) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: ACR login
+        run: az acr login --name ${{ env.ACR_NAME }}
+
+      - name: Build and push image
+        run: |
+          SHA_TAG=$(git rev-parse --short HEAD)
+          IMG="${{ env.ACR_NAME }}.azurecr.io/${{ matrix.service }}:${SHA_TAG}"
+          echo "Building $IMG"
+          docker build -t "$IMG" "apps/${{ matrix.service }}"
+          docker push "$IMG"
+          echo "SHA_TAG=$SHA_TAG" >> "$GITHUB_ENV"
+
+      - name: Bump values-dev.yaml tag
+        run: |
+          VALUES="apps/${{ matrix.service }}/values-dev.yaml"
+          sed -i "s|^  tag: .*|  tag: \"${SHA_TAG}\"|" "$VALUES"
+          git diff "$VALUES"
+
+      - name: Commit and push tag bump
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "apps/${{ matrix.service }}/values-dev.yaml"
+          if git diff --staged --quiet; then
+            echo "No tag change; nothing to commit."
+            exit 0
+          fi
+          git commit -m "ci: bump ${{ matrix.service }} image to ${SHA_TAG}
+
+          [skip ci]"                          # don't let the bump re-trigger this workflow
+          git pull --rebase origin main        # absorb any earlier service's bump (max-parallel:1)
+          git push

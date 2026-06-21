@@ -1,0 +1,41 @@
+# PROD ApplicationSet — same idea as dev, hardened for prod:
+#   - discovers apps/<svc>/values-prod.yaml (only services with prod config deploy)
+#   - NO automated sync block → manual sync (promotion gate)
+#   - should track a pinned release, not bleeding `main` (see TODOs)
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: apps-prod
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/Pritam224/Internal-developer-Platform
+        revision: main                            # TODO: pin to a release tag (e.g. v1.0.0)
+        files:
+          - path: "apps/*/values-prod.yaml"       # add a values-prod.yaml per service to opt it into prod
+  template:
+    metadata:
+      name: "{{.path.basename}}-prod"
+    spec:
+      project: default
+      sources:
+        - repoURL: https://github.com/Pritam224/Internal-developer-Platform
+          targetRevision: main                    # TODO: pin to the same release tag
+          ref: values
+        - repoURL: https://github.com/Pritam224/Internal-developer-Platform
+          path: infra-manifest/helm/app
+          targetRevision: main                    # TODO: pin to the same release tag
+          helm:
+            releaseName: "{{.path.basename}}"
+            valueFiles:
+              - $values/{{.path.path}}/values-prod.yaml
+      destination:
+        server: https://kubernetes.default.svc     # TODO: point at the prod cluster API
+        namespace: "{{.path.basename}}"
+      syncPolicy:
+        # No `automated` block → prod syncs only when a human approves (promotion gate).
+        syncOptions:
+          - CreateNamespace=true

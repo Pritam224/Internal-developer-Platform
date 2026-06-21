@@ -1,0 +1,7 @@
+# hello-universe (DEV) — overrides on the shared `app` chart's defaults.
+# Differs from hello-world only in image + replica count.
+replicaCount: 2
+
+image:
+  repository: acridpdev.azurecr.io/hello-universe
+  tag: ""   # bumped by CI to the commit SHA

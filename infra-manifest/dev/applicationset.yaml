@@ -1,0 +1,43 @@
+# DEV ApplicationSet — discovers every apps/<svc>/values-dev.yaml and deploys it
+# using the ONE shared chart (infra-manifest/helm/backend) via multi-source.
+# Services carry no base values.yaml: chart defaults + the service's values-dev.yaml.
+# Add a new apps/<svc>/values-dev.yaml → it deploys itself.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: apps-dev
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/Pritam224/Internal-developer-Platform
+        revision: main
+        files:
+          - path: "apps/*/values-dev.yaml"      # one element per service
+  template:
+    metadata:
+      name: "{{.path.basename}}-dev"             # hello-world-dev, hello-universe-dev
+    spec:
+      project: default
+      sources:
+        - repoURL: https://github.com/Pritam224/Internal-developer-Platform
+          targetRevision: main
+          ref: values                            # exposes the repo as $values
+        - repoURL: https://github.com/Pritam224/Internal-developer-Platform
+          path: infra-manifest/helm/app            # the ONE shared chart
+          targetRevision: main
+          helm:
+            releaseName: "{{.path.basename}}"
+            valueFiles:
+              - $values/{{.path.path}}/values-dev.yaml
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{.path.basename}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

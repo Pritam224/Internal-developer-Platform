@@ -1,17 +1,19 @@
-# Default values for backend.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
+# Default values for the shared `app` chart.
+# Per-service config lives in apps/<svc>/values-<env>.yaml.
 
-# This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
 replicaCount: 1
 
-# This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
+# Container image. repository + tag are set per service in apps/<svc>/values-<env>.yaml
+# (tag bumped by each service's CI on every push).
 image:
-  repository: nginx
-  # This sets the pull policy for images.
+  repository: ""   # set per service
   pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
-  tag: ""
+  tag: ""          # set per service / bumped by CI to the commit SHA
+
+# Optional container command/args. Empty by default; services that share this chart
+# can set them (e.g. hashicorp/http-echo). FastAPI services leave them empty.
+command: []
+args: []
 
 # This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
 imagePullSecrets: []
@@ -51,10 +53,9 @@ securityContext: {}
 
 # This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
 service:
-  # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
+  # Service exposes the app on the cluster network. FastAPI / uvicorn listens on 8000.
   type: ClusterIP
-  # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
-  port: 80
+  port: 8000
 
 # This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
 ingress:
@@ -126,12 +127,16 @@ resources: {}
 # This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
 livenessProbe:
   httpGet:
-    path: /
+    path: /healthz
     port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
 readinessProbe:
   httpGet:
-    path: /
+    path: /ready
     port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
 
 # This section is for setting up autoscaling more information can be found here: https://kubernetes.io/docs/concepts/workloads/autoscaling/
 autoscaling:

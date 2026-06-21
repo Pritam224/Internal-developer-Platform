@@ -1,0 +1,7 @@
+# hello-world (DEV) — overrides on the shared `app` chart's defaults.
+# No base values.yaml; inherits chart defaults (port 8000, /healthz + /ready probes).
+replicaCount: 1
+
+image:
+  repository: acridpdev.azurecr.io/hello-world
+  tag: ""   # bumped by CI to the commit SHA

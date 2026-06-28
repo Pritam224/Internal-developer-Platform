@@ -87,3 +87,8 @@ variable "system_node_vm_size" {
   type        = string
   description = "VM size for the AKS system (default) node pool"
 }
+
+variable "aks_sku_tier" {
+  type        = string
+  description = "AKS control-plane tier (Free, Standard, Premium)"
+}

@@ -98,6 +98,11 @@ variable "app_node_vm_size" {
   description = "VM size for the AKS app/workload node pool"
 }
 
+variable "aks_sku_tier" {
+  type        = string
+  description = "AKS control-plane tier (Free, Standard, Premium)"
+}
+
 variable "service_cidr" {
   type        = string
   description = "Kubernetes service CIDR (must NOT overlap with VNet)"

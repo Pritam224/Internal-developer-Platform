@@ -16,6 +16,7 @@ acr_name              = "acrIdpDev"
 identity_type         = "UserAssigned"
 acr_sku               = "Basic"
 system_node_vm_size   = "Standard_DS3_v2"
+aks_sku_tier          = "Free"
 
 
 

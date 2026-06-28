@@ -58,6 +58,12 @@ variable "app_node_vm_size" {
   default     = "Standard_DS2_v2"
 }
 
+variable "aks_sku_tier" {
+  type        = string
+  description = "AKS control-plane tier (Free, Standard, Premium)"
+  default     = "Free"
+}
+
 variable "service_cidr" {
   type        = string
   description = "Kubernetes service CIDR (must NOT overlap with VNet address space)"

@@ -29,6 +29,7 @@ module "aks" {
   max_node_count      = var.max_node_count
   system_node_vm_size = var.system_node_vm_size
   app_node_vm_size    = var.app_node_vm_size
+  aks_sku_tier        = var.aks_sku_tier
   service_cidr        = var.service_cidr
   dns_service_ip      = var.dns_service_ip
   acr_name            = var.acr_name

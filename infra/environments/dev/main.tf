@@ -27,6 +27,7 @@ module "aks" {
   project_name        = var.project_name
   acr_name            = var.acr_name
   system_node_vm_size = var.system_node_vm_size
+  aks_sku_tier        = var.aks_sku_tier
 }
 
 module "keyvault" {

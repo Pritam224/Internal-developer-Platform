@@ -18,5 +18,6 @@ min_node_count        = 1
 max_node_count        = 2
 system_node_vm_size   = "Standard_DS2_v2"
 app_node_vm_size      = "Standard_D4s_v5"
+aks_sku_tier          = "Free"
 service_cidr          = "172.16.0.0/16"
 dns_service_ip        = "172.16.0.10"

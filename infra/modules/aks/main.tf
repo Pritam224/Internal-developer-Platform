@@ -8,10 +8,11 @@ resource "azurerm_kubernetes_cluster" "aks" {
   sku_tier            = var.aks_sku_tier
 
   default_node_pool {
-    name           = "default"
-    node_count     = 1
-    vm_size        = var.system_node_vm_size
-    vnet_subnet_id = var.aks_subnet_id
+    name                        = "default"
+    node_count                  = 1
+    vm_size                     = var.system_node_vm_size
+    vnet_subnet_id              = var.aks_subnet_id
+    temporary_name_for_rotation = "tmppool"
   }
 
   network_profile {

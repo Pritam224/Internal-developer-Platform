@@ -26,6 +26,7 @@ module "aks" {
   owner_email         = var.owner_email
   project_name        = var.project_name
   acr_name            = var.acr_name
+  system_node_vm_size = var.system_node_vm_size
 }
 
 module "keyvault" {
@@ -46,7 +47,7 @@ module "acr" {
   depends_on = [module.network]
 
   acr_name            = var.acr_name
-  sku                 = var.sku
+  acr_sku             = var.acr_sku
   resource_group_name = var.resource_group_name
   location            = var.location
   environment         = var.environment

@@ -73,9 +73,9 @@ variable "acr_name" {
   description = "Provide container registry name"
 }
 
-variable "sku" {
+variable "acr_sku" {
   type        = string
-  description = "Provide sku for ACR (must be Premium for private endpoint)"
+  description = "SKU tier for the Azure Container Registry (must be Premium for private endpoint)"
 }
 
 variable "min_node_count" {
@@ -88,9 +88,14 @@ variable "max_node_count" {
   description = "Maximum node count for autoscaling AKS app node pool"
 }
 
-variable "node_vm_size" {
+variable "system_node_vm_size" {
   type        = string
-  description = "VM size for AKS nodes"
+  description = "VM size for the AKS system (default) node pool"
+}
+
+variable "app_node_vm_size" {
+  type        = string
+  description = "VM size for the AKS app/workload node pool"
 }
 
 variable "service_cidr" {

@@ -14,7 +14,9 @@ aks_cluster_name      = "aks-idp-dev"
 keyvault_name         = "keyvault-idp-dev"
 acr_name              = "acrIdpDev"
 identity_type         = "UserAssigned"
-sku                   = "Basic"
+acr_sku               = "Basic"
+system_node_vm_size   = "Standard_DS3_v2"
+
 
 
 

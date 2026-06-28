@@ -78,7 +78,12 @@ variable "identity_type" {
   type = string
 }
 
-variable "sku" {
+variable "acr_sku" {
   type        = string
-  description = "Provide sku for ACR"
+  description = "SKU tier for the Azure Container Registry (Basic, Standard, Premium)"
+}
+
+variable "system_node_vm_size" {
+  type        = string
+  description = "VM size for the AKS system (default) node pool"
 }

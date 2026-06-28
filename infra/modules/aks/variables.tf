@@ -46,9 +46,15 @@ variable "max_node_count" {
   default     = 3
 }
 
-variable "node_vm_size" {
+variable "system_node_vm_size" {
   type        = string
-  description = "VM size for AKS nodes"
+  description = "VM size for the AKS system (default) node pool — runs cluster system pods (CoreDNS, kube-proxy, etc.)"
+  default     = "Standard_DS2_v2"
+}
+
+variable "app_node_vm_size" {
+  type        = string
+  description = "VM size for the AKS app/workload node pool (created in non-dev environments)"
   default     = "Standard_DS2_v2"
 }
 

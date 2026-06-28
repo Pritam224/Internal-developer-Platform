@@ -27,7 +27,8 @@ module "aks" {
   project_name        = var.project_name
   min_node_count      = var.min_node_count
   max_node_count      = var.max_node_count
-  node_vm_size        = var.node_vm_size
+  system_node_vm_size = var.system_node_vm_size
+  app_node_vm_size    = var.app_node_vm_size
   service_cidr        = var.service_cidr
   dns_service_ip      = var.dns_service_ip
   acr_name            = var.acr_name
@@ -54,7 +55,7 @@ module "acr" {
   depends_on = [module.network]
 
   acr_name            = var.acr_name
-  sku                 = var.sku
+  acr_sku             = var.acr_sku
   resource_group_name = var.resource_group_name
   location            = var.location
   environment         = var.environment

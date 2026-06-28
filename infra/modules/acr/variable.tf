@@ -28,9 +28,9 @@ variable "acr_name" {
   description = "Provide container registry name"
 }
 
-variable "sku" {
+variable "acr_sku" {
   type        = string
-  description = "Provide sku for ACR"
+  description = "SKU tier for the Azure Container Registry (Basic, Standard, Premium)"
 }
 
 variable "admin_enabled" {

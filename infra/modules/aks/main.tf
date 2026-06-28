@@ -9,7 +9,7 @@ resource "azurerm_kubernetes_cluster" "aks" {
   default_node_pool {
     name           = "default"
     node_count     = 1
-    vm_size        = var.node_vm_size
+    vm_size        = var.system_node_vm_size
     vnet_subnet_id = var.aks_subnet_id
   }
 
@@ -36,7 +36,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "app_node_pool" {
   name                  = "apppool"
   kubernetes_cluster_id = azurerm_kubernetes_cluster.aks.id
   vnet_subnet_id        = var.aks_subnet_id
-  vm_size               = var.node_vm_size
+  vm_size               = var.app_node_vm_size
   node_count            = 1
   auto_scaling_enabled  = true
   max_count             = var.max_node_count

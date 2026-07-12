@@ -1,0 +1,32 @@
+# Parent app-of-apps for the DEV logging stack (EFK).
+#
+# The root Application (argocd/dev/root-app.yaml) watches infra-manifest/dev/
+# NON-recursively, so this top-level file is how the logging/ subfolder gets in.
+# It syncs the CHILD Application manifests in logging/ (fluentbit.yaml, and later
+# elasticsearch.yaml / kibana.yaml).
+#
+# recurse is intentionally FALSE: logging/ also contains per-component values
+# subfolders (logging/fluentbit/values.yaml). With recurse ON, ArgoCD would try
+# to apply those values.yaml files as Kubernetes manifests and fail. Non-recursive
+# reads only the top-level *.yaml (the child Applications); the child Applications
+# then pull their own values file from git via $values (multi-source).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: logging
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Pritam224/Internal-developer-Platform
+    path: infra-manifest/dev/logging
+    targetRevision: main
+    directory:
+      recurse: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd          # child Applications are argocd resources
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

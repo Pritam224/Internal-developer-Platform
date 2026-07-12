@@ -1,0 +1,38 @@
+# Fluent Bit child Application — the "F" in EFK. DaemonSet that tails container
+# logs and ships them to Elasticsearch.
+#
+# MULTI-SOURCE (same trick as apps/ applicationset.yaml): ArgoCD can't read a
+# values file that lives OUTSIDE the chart directory from a single Helm source.
+# So we declare two sources:
+#   1. our git repo, exposed as $values (ref only — nothing is deployed from it)
+#   2. the upstream fluent-bit chart, told to read our values file via $values/<path>
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fluent-bit
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"   # deploy after Elasticsearch (wave 0)
+spec:
+  project: default
+  sources:
+  - repoURL: https://github.com/Pritam224/Internal-developer-Platform
+    targetRevision: main
+    ref: values
+  - repoURL: https://fluent.github.io/helm-charts
+    chart: fluent-bit
+    targetRevision: 0.57.9
+    helm:
+      releaseName: fluent-bit
+      valueFiles:
+        - $values/infra-manifest/dev/logging/fluentbit/values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+

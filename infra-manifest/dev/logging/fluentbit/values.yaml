@@ -1,0 +1,36 @@
+# Fluent Bit — DEV overrides ONLY. Everything omitted inherits the chart
+# defaults (kind: DaemonSet, tail + systemd inputs, kubernetes filter, RBAC,
+# probes, volumes). Helm DEEP-MERGES the `config` map, so we override only
+# `config.outputs`; `service`/`inputs`/`filters` keep the chart defaults.
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    memory: 128Mi
+
+config:
+  # Ship to the in-cluster Elasticsearch service (`elasticsearch-master`).
+  # Suppress_Type_Name On is REQUIRED for ES 8.x (mapping types were removed) —
+  # without it every write fails. Both outputs need it.
+  outputs: |
+    [OUTPUT]
+        Name               es
+        Match              kube.*
+        Host               elasticsearch-master
+        Port               9200
+        Logstash_Format    On
+        Logstash_Prefix    fluentbit
+        Suppress_Type_Name On
+        Retry_Limit        False
+
+    [OUTPUT]
+        Name               es
+        Match              host.*
+        Host               elasticsearch-master
+        Port               9200
+        Logstash_Format    On
+        Logstash_Prefix    node
+        Suppress_Type_Name On
+        Retry_Limit        False

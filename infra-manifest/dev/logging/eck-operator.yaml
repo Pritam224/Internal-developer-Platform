@@ -1,0 +1,35 @@
+# ECK Operator — installs the Elasticsearch/Kibana CRDs and the controller that
+# reconciles them. MUST exist before any Elasticsearch/Kibana custom resource,
+# otherwise you get "no matches for kind Elasticsearch" (the error you hit).
+#
+# Two ECK-specific gotchas handled below:
+#   - sync-wave "-2": deploy this BEFORE the eck-stack (wave 0) and fluent-bit
+#     (wave 1), so the CRDs are registered first.
+#   - ServerSideApply=true: the ECK CRDs (esp. Elasticsearch) are huge — larger
+#     than the last-applied annotation limit, so client-side apply fails. SSA
+#     avoids that.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: eck-operator
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  project: default
+  source:
+    repoURL: https://helm.elastic.co
+    chart: eck-operator
+    targetRevision: 3.4.1
+    helm:
+      releaseName: eck-operator
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: elastic-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

@@ -1,0 +1,43 @@
+# ECK Stack — the actual Elasticsearch + Kibana custom resources (the operator
+# from eck-operator.yaml turns these CRs into real pods). Deployed into
+# `observability` so the ES Service (elasticsearch-es-http) and the elastic-user
+# secret sit in the same namespace as Fluent Bit.
+#
+# MULTI-SOURCE: pulls the eck-stack chart from Elastic + our values file from git
+# via $values (same pattern as fluentbit.yaml / apps applicationset.yaml).
+#
+# Two ECK-specific gotchas handled below:
+#   - sync-wave "0": after the operator (-2, so CRDs exist), before fluent-bit (1).
+#   - SkipDryRunOnMissingResource=true: on the first sync the Elasticsearch/Kibana
+#     CRDs may not be registered yet, and ArgoCD's dry-run would fail. This tells
+#     ArgoCD to skip the dry-run for those kinds and retry until the CRDs appear.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: eck-stack
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/Pritam224/Internal-developer-Platform
+      targetRevision: main
+      ref: values
+    - repoURL: https://helm.elastic.co
+      chart: eck-stack
+      targetRevision: 0.19.1
+      helm:
+        releaseName: eck-stack
+        valueFiles:
+          - $values/infra-manifest/dev/logging/eck/values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - SkipDryRunOnMissingResource=true

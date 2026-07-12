@@ -10,16 +10,28 @@ resources:
   limits:
     memory: 300Mi
 
+env:
+  - name: ES_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: elasticsearch-es-elastic-user   
+        key: elastic
+
 config:
-  # Ship to the in-cluster Elasticsearch service (`elasticsearch-master`).
+  # Ship to the ECK-managed Elasticsearch HTTP service (`elasticsearch-es-http`),
+  # over HTTPS (tls On) with the `elastic` superuser. ECK is secure-by-default.
   # Suppress_Type_Name On is REQUIRED for ES 8.x (mapping types were removed) —
   # without it every write fails. Both outputs need it.
   outputs: |
     [OUTPUT]
         Name               es
         Match              kube.*
-        Host               elasticsearch-master
+        Host               elasticsearch-es-http
+        http_user          elastic
+        http_passwd        ${ES_PASSWORD}
         Port               9200
+        tls                On
+        tls.verify         Off
         Logstash_Format    On
         Logstash_Prefix    fluentbit
         Suppress_Type_Name On
@@ -28,8 +40,12 @@ config:
     [OUTPUT]
         Name               es
         Match              host.*
-        Host               elasticsearch-master
+        Host               elasticsearch-es-http
+        http_user          elastic
+        http_passwd        ${ES_PASSWORD}
         Port               9200
+        tls                On
+        tls.verify         Off
         Logstash_Format    On
         Logstash_Prefix    node
         Suppress_Type_Name On

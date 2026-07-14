@@ -76,6 +76,12 @@ variable "dns_service_ip" {
   default     = "10.1.0.10"
 }
 
+variable "pod_cidr" {
+  type        = string
+  description = "Virtual CIDR for pod IPs in Azure CNI Overlay mode (must NOT overlap the VNet or service_cidr)"
+  default     = "192.168.0.0/16"
+}
+
 variable "acr_name" {
   type        = string
   description = "Name of the ACR to grant AcrPull on (kubelet identity gets AcrPull)"

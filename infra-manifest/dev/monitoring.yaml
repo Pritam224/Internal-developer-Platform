@@ -1,0 +1,31 @@
+# Parent app-of-apps for the DEV monitoring stack (Prometheus/Grafana/Alertmanager).
+#
+# The root Application (argocd/dev/root-app.yaml) watches infra-manifest/dev/
+# NON-recursively, so this top-level file is how the monitoring/ subfolder gets in.
+# It syncs the child Application(s) in monitoring/ (kube-prometheus-stack.yaml).
+#
+# recurse is intentionally FALSE: monitoring/ also contains a values subfolder
+# (monitoring/kube-prometheus-stack/values.yaml). With recurse ON, ArgoCD would try
+# to apply that values.yaml as a Kubernetes manifest and fail. Non-recursive reads
+# only the top-level *.yaml (the child Application), which then pulls its own values
+# file from git via $values (multi-source).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Pritam224/Internal-developer-Platform
+    path: infra-manifest/dev/monitoring
+    targetRevision: main
+    directory:
+      recurse: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd          # child Applications are argocd resources
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

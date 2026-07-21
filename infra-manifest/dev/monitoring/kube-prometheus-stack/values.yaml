@@ -1,0 +1,43 @@
+# kube-prometheus-stack — DEV overrides ONLY (chart 87.17.0). Everything omitted
+# inherits chart defaults. Lean setup sized for a single small AKS node.
+
+# 1) SCRAPE DISCOVERY — watch ALL ServiceMonitors/PodMonitors/rules in the cluster,
+#    not just the chart's own. Without this, ServiceMonitors you create for your
+#    apps are silently ignored (the #1 "why isn't my target scraped?" gotcha).
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+
+    # 2) KEEP PROMETHEUS SMALL + DURABLE on a tiny node.
+    retention: 7d                        # drop metrics older than 7 days
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        memory: 1Gi
+    storageSpec:                         # persist the TSDB — without this it's emptyDir (lost on restart)
+      volumeClaimTemplate:
+        spec:
+          storageClassName: managed-csi  # AKS default Azure Disk CSI
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+
+# 3) AKS MANAGED CONTROL PLANE — these components aren't scrapeable on AKS, so
+#    disable them or Prometheus shows permanent "target down" alerts.
+kubeControllerManager:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+# NOTE on Grafana: default login is admin / prom-operator — fine for a dev
+# port-forward. For anything real set `grafana.admin.existingSecret` (never
+# hardcode a password here — it would land in git). Left at chart default.
